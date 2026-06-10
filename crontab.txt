@@ -1,0 +1,33 @@
+# Moodle cron setiap menit
+* * * * * sudo -u www-data php /var/www/html/moodle/admin/cli/cron.php > /dev/null 2>&1
+
+# Backup lokal ke SD Card jam 2 pagi
+0 2 * * * /root/backup.sh
+
+# Backup cloud ke Google Drive jam 3 pagi
+0 3 * * * /root/backup-cloud.sh
+
+# Bersihkan RAM cache setiap 4 jam
+0 */4 * * * sync && echo 3 > /proc/sys/vm/drop_caches
+
+# Hapus file temporary Moodle setiap 12 jam
+0 */12 * * * find /var/www/html/moodledata/temp -type f -mtime +1 -delete 2>/dev/null
+
+# Hapus log lama setiap minggu
+0 4 * * 0 find /var/log -name "*.log" -mtime +30 -delete 2>/dev/null
+
+# Restart PHP-FPM jam 4 pagi
+0 4 * * * systemctl restart php8.3-fpm
+
+# Cek suhu CPU setiap 30 menit
+*/30 * * * * TEMP=$(cat /sys/class/thermal/thermal_zone0/temp 2>/dev/null | awk '{print $1/1000}'); if [ ! -z "$TEMP" ] && [ $(echo "$TEMP > 70" | bc) -eq 1 ]; then echo "CPU Temp: ${TEMP}°C" | logger -t CPU-ALERT; fi
+
+# Cek disk usage setiap jam
+0 * * * * DISK=$(df -h / | tail -1 | awk '{print $5}' | sed 's/%//'); if [ $DISK -gt 85 ]; then echo "Disk usage: ${DISK}%" | logger -t DISK-ALERT; fi
+
+# Optimasi database setiap minggu
+0 3 * * 0 mysqlcheck -u root --optimize --auto-repair moodle_db 2>/dev/null
+0 0 * * * mysqldump -u root moodle_db mdl_logstore_standard_log > /mnt/sdcard/backup/audit-log-$(date +\%Y\%m\%d).sql 2>/dev/null
+0 1 * * 0 cp /var/www/html/moodle/config.php /etc/nginx/sites-available/moodle /etc/php/8.3/fpm/php.ini /mnt/sdcard/backup/config/
+0 5 * * 0 /root/optimize-images.sh
+*/15 * * * * /root/auto-repair.sh

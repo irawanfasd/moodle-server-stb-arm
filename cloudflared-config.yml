@@ -1,0 +1,7 @@
+tunnel: efb88abf-c92c-4edf-bc59-d2bb3a9e28a7
+credentials-file: /root/.cloudflared/efb88abf-c92c-4edf-bc59-d2bb3a9e28a7.json
+
+ingress:
+  - hostname: lmsmoodletest.xyz
+    service: http://localhost:80
+  - service: http_status:404
